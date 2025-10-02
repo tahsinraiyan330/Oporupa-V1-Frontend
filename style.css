@@ -111,6 +111,22 @@ body {
     border-bottom-right-radius: 0;
 }
 
+/* --- NEW: Loading Message Style --- */
+/* This style corresponds to the new 'bot-loading-message' class */
+.bot-loading-message {
+    background-color: #303030; /* A neutral color for loading */
+    color: #a0a0a0;
+    font-style: italic;
+    animation: pulse 1.5s infinite; 
+}
+
+@keyframes pulse {
+    0% { opacity: 0.8; }
+    50% { opacity: 0.5; }
+    100% { opacity: 0.8; }
+}
+/* --- END NEW STYLE --- */
+
 .chat-form {
     display: flex;
     margin-top: 20px;
