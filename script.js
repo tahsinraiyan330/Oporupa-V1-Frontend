@@ -5,15 +5,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Configuration ---
     // ⚠️ IMPORTANT: REPLACE THIS PLACEHOLDER WITH YOUR LIVE RENDER BACKEND URL ⚠️
-    const BACKEND_URL = 'https://oporupa-backend.onrender.com/'; 
+    const BACKEND_URL = 'https://oporupa-backend.onrender.com'; 
 
-    // Initialize a unique session ID for persistent conversation history
     let sessionId = localStorage.getItem('oporupa_session_id');
     if (!sessionId) {
         sessionId = 'session_' + Math.random().toString(36).substring(2, 15);
         localStorage.setItem('oporupa_session_id', sessionId);
     }
     
+    // --- Message Display Function ---
+    // This function is the source of the error. We are simplifying its class handling.
+    function addMessage(text, sender, is_loading = false) {
+        const messageDiv = document.createElement('div');
+        
+        // Always add the base message class
+        messageDiv.classList.add('chat-message'); 
+        
+        // Add the sender-specific class
+        if (sender === 'user') {
+            messageDiv.classList.add('user-message');
+        } else if (sender === 'bot') {
+            messageDiv.classList.add('bot-message');
+        }
+        
+        // Add the specific loading class if requested
+        if (is_loading) {
+            // This is the clean, single class name that fixes the InvalidCharacterError
+            messageDiv.classList.add('bot-loading-message'); 
+        }
+
+        messageDiv.innerHTML = `<p>${text}</p>`;
+        chatHistory.appendChild(messageDiv);
+        chatHistory.scrollTop = chatHistory.scrollHeight; 
+        return messageDiv;
+    }
+
+
     // --- Event Listener for Form Submission ---
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -23,9 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
             addMessage(message, 'user');
             userInput.value = '';
             
-            // 2. Display a loading message
-            // FIX: The class name is now 'bot-loading' to prevent the InvalidCharacterError
-            const loadingMessage = addMessage('Oporupa is thinking...', 'bot-loading'); 
+            // 2. Display a loading message (using the new is_loading flag)
+            const loadingMessage = addMessage('Oporupa is thinking...', 'bot', true); 
             userInput.disabled = true; 
             chatForm.querySelector('button').disabled = true;
 
@@ -34,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 4. Clean up and display the final response
             loadingMessage.remove();
-            addMessage(botResponse, 'bot');
+            addMessage(botResponse, 'bot', false);
             
             userInput.disabled = false; 
             chatForm.querySelector('button').disabled = false;
@@ -42,28 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Message Display Function ---
-    function addMessage(text, sender) {
-        const messageDiv = document.createElement('div');
-        
-        // This line constructs the class string based on the sender argument.
-        // It must ensure that 'sender' does not contain spaces when used here.
-        messageDiv.classList.add('chat-message', `${sender}-message`);
-        
-        messageDiv.innerHTML = `<p>${text}</p>`;
-        chatHistory.appendChild(messageDiv);
-        chatHistory.scrollTop = chatHistory.scrollHeight; 
-        return messageDiv;
-    }
-
-    // --- API Communication Function (Connects to Render) ---
+    // --- API Communication Function ---
     async function getBotResponse(userMessage) {
         try {
             const response = await fetch(`${BACKEND_URL}/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Pass the session ID for conversation history management
                     'X-Session-ID': sessionId 
                 },
                 body: JSON.stringify({ message: userMessage }),
@@ -74,13 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 return data.bot_response; 
             } else {
-                // Handle errors returned by your Flask server (e.g., 400, 500)
                 console.error("Backend Error:", data.bot_response);
                 return data.bot_response || `Server Error (${response.status}). Check server logs.`;
             }
 
         } catch (error) {
-            // Handle network/CORS errors
             console.error('Error fetching response:', error);
             return 'দুঃখিত, সংযোগ স্থাপন করা সম্ভব হয়নি। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন। (Connection error.)';
         }
